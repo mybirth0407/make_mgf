@@ -8,112 +8,124 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 public class MGFIterator extends ScanIterator {
-		
-	public MGFIterator( String fileName ) throws IOException {	
-		super(fileName);
-		
-		BufferedReader in = new BufferedReader( new FileReader(fileName) );
-		String buf;
-		int size = 0;			
-		while( (buf = in.readLine()) != null ){
-			if( buf.startsWith("BEGIN IONS") )	// begining of new spectrum
-				size++;
-		}	
-		in.close();
-		sizeOfScans = size;
-		fin = new RandomAccessFile(fileName, "r");
-	}
-	
-	public ArrayList<MSMScan> getNext() throws IOException {
-		
-		ArrayList<MSMScan> scanlist = new ArrayList<MSMScan>();
-		MSMScan curScan = null;
-		
-		String buf;
-		long startOffset = 0, pStart = 0;
-		while( true ){
-			
-			startOffset = fin.getFilePointer();
-			if( (buf = fin.readLine()) == null ) break;
-			
-			//√≥¿Ω ¡§∫∏ πﬁ¥¬ ∫Œ∫–
-			if( buf.startsWith("BEGIN") ){	// begining of new spectrum	
-				String title= String.valueOf( scanIndex+1 );
-				int charge= 0;
-				double pmz= 0.;
-				int scanNo = -1;
+  public MGFIterator(String fileName) throws IOException {
+    super(fileName);
 
-				while( (buf = fin.readLine()) != null ) {	
-					if( !buf.contains("=") ) {
-						break;				
-					}
-					if( buf.startsWith("CHARGE=") ){		
-					  //System.out.println(buf+"§ª§ª§ª");
-						int st = buf.lastIndexOf('=')+1;
-						int ed = st+1;
-						for(int i=st; i<buf.length(); i++){
-							if( Character.isDigit( buf.charAt(i) ) ){
-								st = i;
-								ed = st+1;
-								break;
-							}
-						}
-						for(int i=ed; i<buf.length(); i++){
-							if( !Character.isDigit( buf.charAt(i) ) ){
-								ed = i;
-								break;
-							}
-						}
-						charge= Integer.parseInt( buf.substring(st,ed) );
-					}
-					if( buf.startsWith("PEPMASS=") ){						
-						StringTokenizer token = new StringTokenizer(buf.substring(buf.indexOf("=")+1));
-						if( token.countTokens() != 0 )
-							pmz = Double.parseDouble( token.nextToken() );
-					}
-					if( buf.startsWith("SCANS=")){
-						StringTokenizer token = new StringTokenizer(buf.substring(buf.indexOf("=")+1));
-						if( token.countTokens() != 0 )
-						    scanNo = -1; //only for test.
-//							scanNo = Integer.parseInt(token.nextToken());
-					}
-					//√ﬂ∞° 08.12
-					if( buf.startsWith("TITLE=")){
-						StringTokenizer token = new StringTokenizer(buf.substring(buf.indexOf("=")+1));
-						if( token.countTokens() != 0 )
-							title = token.nextToken();
-					}
-					pStart = fin.getFilePointer(); //mass spectrum start
-				}//end while( (buf = fin.readLine()) != null ) 
-				//¿Ã¡¶ m/z, intensityπﬁ¥¬∫Œ∫–
-				if( pmz != 0. ){
-					if( charge != 0 ){			
-						if(scanNo != -1) curScan = new MSMScan(title, scanNo, pmz, charge); 
-						else curScan = new MSMScan(title, pmz, charge);
-				
-						curScan.setOffset( startOffset );	
-						fin.seek(pStart);
-						curScan.readPeakList(fin);
-						if( curScan.getSpectrum() != null ) scanlist.add(curScan);
-					}
-					else{ //charge == 0. ¿Œ∞ÊøÏ, = ∞™¿Ã æÀ∑¡¡ˆ¡ˆ æ ¿∫∞ÊøÏ (¡¶¥Î∑Œ ∞¸√¯µ«¡ˆ æ ¿∫∞ÊøÏ) 2~3±Ó¡ˆ charge∞° 2∑Œµµ ∏∏µÈ∞Ì, 3¿∏∑Œµµ ∏∏µÈæÓº≠ µ— ¡ﬂ ¿ﬂµ«¥¬∞…∑Œ ∏¬√ﬂ∑¡∞Ì«‘
-						for(int cs=MIN_ASSUMED_CHARGE; cs<=MAX_ASSUMED_CHARGE; cs++){						
-							if(scanNo != -1) curScan = new MSMScan(title, scanNo, pmz, cs);//
-							else curScan = new MSMScan(title, pmz, cs);//
-			
-							curScan.setOffset( startOffset );			
-							fin.seek(pStart);
-							curScan.readPeakList(fin);
-							if( curScan.getSpectrum() != null ) scanlist.add(curScan);
-						}
-					}
-				}//end if(pmz!= 0.)
-				scanIndex++;
-				break; //ø©±‚ø° break∞° ¿÷¿∏∏È µ¸ «œ≥™¿« BEGIN to END ION±Ó¡ˆ∏∏ ¿–¥¬∞Õ (∏ﬁ∏∏Æ∂ßπÆø°?)
-			}//end 
-		}//end while
-		return scanlist;
-	}
-	
+    BufferedReader in = new BufferedReader(new FileReader(fileName));
+    String buf;
+    int size = 0;
+    while ((buf = in.readLine()) != null) {
+      if (buf.startsWith("BEGIN IONS"))  // begining of new spectrum
+        size++;
+    }
+    in.close();
+    sizeOfScans = size;
+    fin = new RandomAccessFile(fileName, "r");
+  }
+
+  public ArrayList<MSMScan> getNext() throws IOException {
+
+    ArrayList<MSMScan> scanlist = new ArrayList<MSMScan>();
+    MSMScan curScan = null;
+
+    String buf;
+    long startOffset = 0, pStart = 0;
+
+    while (true) {
+      startOffset = fin.getFilePointer();
+      if ((buf = fin.readLine()) == null)
+        break;
+
+      // Ï≤òÏùå Ï†ïÎ≥¥ Î∞õÎäî Î∂ÄÎ∂Ñ
+      if (buf.startsWith("BEGIN")) {  // begining of new spectrum
+        String title = String.valueOf(scanIndex + 1);
+        int charge = 0;
+        double pmz = 0.;
+        int scanNo = -1;
+
+        while ((buf = fin.readLine()) != null) {
+          if (!buf.contains("=")) {
+            break;
+          }
+          if (buf.startsWith("CHARGE=")) {
+            //System.out.println(buf+"„Öã„Öã„Öã");
+            int st = buf.lastIndexOf('=') + 1;
+            int ed = st + 1;
+            for (int i = st; i < buf.length(); i++) {
+              if (Character.isDigit(buf.charAt(i))) {
+                st = i;
+                ed = st + 1;
+                break;
+              }
+            }
+            for (int i = ed; i < buf.length(); i++) {
+              if (!Character.isDigit(buf.charAt(i))) {
+                ed = i;
+                break;
+              }
+            }
+            charge = Integer.parseInt(buf.substring(st, ed));
+          }
+          if (buf.startsWith("PEPMASS=")) {
+            StringTokenizer
+                token =
+                new StringTokenizer(buf.substring(buf.indexOf("=") + 1));
+            if (token.countTokens() != 0)
+              pmz = Double.parseDouble(token.nextToken());
+          }
+          if (buf.startsWith("SCANS=")) {
+            StringTokenizer
+                token =
+                new StringTokenizer(buf.substring(buf.indexOf("=") + 1));
+            if (token.countTokens() != 0)
+              scanNo = -1; //only for test.
+            //                          scanNo = Integer.parseInt(token.nextToken());
+          }
+          //Ï∂îÍ∞Ä 08.12
+          if (buf.startsWith("TITLE=")) {
+            StringTokenizer
+                token =
+                new StringTokenizer(buf.substring(buf.indexOf("=") + 1));
+            if (token.countTokens() != 0)
+              title = token.nextToken();
+          }
+          pStart = fin.getFilePointer(); //mass spectrum start
+        }//end while( (buf = fin.readLine()) != null )
+        //Ïù¥Ï†ú m/z, intensityÎ∞õÎäîÎ∂ÄÎ∂Ñ
+        if (pmz != 0.) {
+          if (charge != 0) {
+            if (scanNo != -1)
+              curScan = new MSMScan(title, scanNo, pmz, charge);
+            else
+              curScan = new MSMScan(title, pmz, charge);
+
+            curScan.setOffset(startOffset);
+            fin.seek(pStart);
+            curScan.readPeakList(fin);
+            if (curScan.getSpectrum() != null)
+              scanlist.add(curScan);
+          }
+          else { //charge == 0. Ïù∏Í≤ΩÏö∞, = Í∞íÏù¥ ÏïåÎ†§ÏßÄÏßÄ ÏïäÏùÄÍ≤ΩÏö∞ (Ï†úÎåÄÎ°ú Í¥ÄÏ∏°ÎêòÏßÄ ÏïäÏùÄÍ≤ΩÏö∞) 2~3ÍπåÏßÄ chargeÍ∞Ä 2Î°úÎèÑ ÎßåÎì§Í≥†, 3ÏúºÎ°úÎèÑ ÎßåÎì§Ïñ¥ÏÑú Îëò Ï§ë ÏûòÎêòÎäîÍ±∏Î°ú ÎßûÏ∂îÎ†§Í≥†Ìï®
+            for (int cs = MIN_ASSUMED_CHARGE; cs <= MAX_ASSUMED_CHARGE; cs++) {
+              if (scanNo != -1)
+                curScan = new MSMScan(title, scanNo, pmz, cs);//
+              else
+                curScan = new MSMScan(title, pmz, cs);//
+
+              curScan.setOffset(startOffset);
+              fin.seek(pStart);
+              curScan.readPeakList(fin);
+              if (curScan.getSpectrum() != null)
+                scanlist.add(curScan);
+            }
+          }
+        }//end if(pmz!= 0.)
+        scanIndex++;
+        break; //Ïó¨Í∏∞Ïóê breakÍ∞Ä ÏûàÏúºÎ©¥ Îî± ÌïòÎÇòÏùò BEGIN to END IONÍπåÏßÄÎßå ÏùΩÎäîÍ≤É (Î©îÎ™®Î¶¨ÎïåÎ¨∏Ïóê?)
+      }//end
+    }//end while
+    return scanlist;
+  }
 }
+
 
