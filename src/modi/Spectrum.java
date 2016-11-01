@@ -238,131 +238,190 @@ public class Spectrum extends ArrayList<Peak> implements Comparable<Spectrum> {
 
 
   ////////////////////////////////////////////////////////////////////////////
-  public int peakSelection(double selectionWindowSize, int numOfPeaksInWindow) {
+  public ArrayList<Peak> peakSelection(double selectionWindowSize, int
+      numOfPeaksInWindow) {
     int globalSelectedSize =
         (int) (this.observedMW / selectionWindowSize * numOfPeaksInWindow);
     //globalSelectedSize = (int) (this.observedMW / 100 * 2);
-    return peakSelection(globalSelectedSize, selectionWindowSize, numOfPeaksInWindow);
+    return peakSelection(globalSelectedSize, selectionWindowSize,
+                         numOfPeaksInWindow);
   }
 
   /**
    * globalSelectedSize 는 처음에 나눴을때, 윈도우가 몇개가 있는지를 나타낸다.
-   * 곱하기 peak의 갯수를 하면, 전체 peak의 갯수 '
+   * 곱하기 peak 의 갯수를 하면, 전체 peak 의 갯수 '
    */
   /**
-   * 전체 peak의 갯수가 사이즈보다크면 다 때려박고 끝나는 경우다.
+   * 전체 peak 의 갯수가 사이즈보다크면 다 때려박고 끝나는 경우다.
    * 그러나 작으면, 그냥 다 쓰는 것이다.
    * 우선 백개하고, 제일 작은거 비교해서, 쭉 끝까지 다 돈다.
-   * global는 인텐시티 크기를 매겼을때,
-   * globalselectedSize 만큼 높은 peak을 뽑은 것이다.
+   * global 는 인텐시티 크기를 매겼을때,
+   * globalselectedSize 만큼 높은 peak 을 뽑은 것이다.
    */
-  public int peakSelection(int globalSelectedSize, double selectionWindowSize,
+  public ArrayList<Peak> peakSelection(int globalSelectedSize, double
+      selectionWindowSize,
                            int numOfPeaksInWindow) {
     assert (this.checkSorted());    //파라미터가 null 값인지 체크
-    /** 계산된 numOfPeaksInWindow구간 만큼의 peak 의 갯수가,
-     * 서브클래스 list 갯수보다 클 경우 */
+    /**
+     * 계산된 numOfPeaksInWindow 구간 만큼의 peak 의 갯수가,
+     * 서브클래스 list 갯수보다 클 경우
+     */
     if (globalSelectedSize > this.size())
-    /** globalSelectedSize에 서버클래스 list 갯수값을 넣는다. */
+    /** globalSelectedSize 에 서버클래스 list 갯수값을 넣는다. */
       globalSelectedSize = this.size();
-    if (this.size() == 0)    // 파라미터의 값이 0일경우(값이 0이 될수는 없음)
-      return -1;    // 에러 코드
-    /** 일정 비율을 global과 local에 대해서 어떻게 되느냐.
-     * 지우는 peak들을 noise라고 한다. */
-    /** global selection부분 (Intensity는 y축 값이다. */
-    /** 서브클래스의 Collection 을 Peak 자료구조의
-     * 객체로, Iterator Collection 에 넣는다.(변수 it) */
+    // if (this.size() == 0)    // 파라미터의 값이 0일경우(값이 0이 될수는 없음)
+    //   return -1;    // 에러 코드
+    /**
+     * 일정 비율을 global 과 local 에 대해서 어떻게 되느냐.
+     * 지우는 peak 들을 noise 라고 한다. */
+    /**
+     * global selection 부분 (Intensity 는 y축 값이다.
+     * 서브클래스의 Collection 을 Peak 자료구조의
+     * 객체로, Iterator Collection 에 넣는다.(변수 it)
+     */
     Iterator<Peak> it = this.iterator();
+    /**
+     * (Intensity 비교)자료구조 Peak 을 TreeSet 클래스를 이용하여
+     * 오름차순으로 정렬하여 globalSelected 에 넣는다.
+     */
     TreeSet<Peak> globalSelected =
         new TreeSet<Peak>(new IntensityComparator());
-    /** (Intensity 비교)자료구조 Peak 을 TreeSet 클래스를 이용하여
-     * 오름차순으로 정렬하여 globalSelected에 넣는다. */
-    /** 서브클래스의 값부터 globalSelectedSize만큼 */
+    /**
+     * 서브클래스의 값부터 globalSelectedSize 만큼
+     */
     for (int i = 0; it.hasNext() && i < globalSelectedSize; i++)
-      globalSelected.add(it.next());    //정렬된 TreeSet에 add
-    /** (mass 비교)선택되지않은 자료구조 Peak 은 notSelected에 넣는다. */
+      globalSelected.add(it.next());    //정렬된 TreeSet 에 add
+    /**
+     * (mass 비교)선택되지않은 자료구조 Peak 은 notSelected 에 넣는다.
+     */
     TreeSet<Peak> notSelected = new TreeSet<Peak>(new MassComparator());
-    Peak curPeak;    // 임시 Peak형 변수 curPeak(현재 값을 나타내기 위해서)
+    Peak curPeak;    // 임시 Peak 형 변수 curPeak(현재 값을 나타내기 위해서)
 
-    while (it.hasNext()) {   // it 에 값이 존재할때까지 (즉 선택 안되고 남은놈들)
-      curPeak = it.next();    // 그다음 peak 을 curPeak에 임시로 넣는다.
-      /** 현재 peak 에서의 intensity 값이, 가장 작은 Intensity 값을 가진 */
-      /** Peak 보다 클경우 */
+    /**
+     * it 에 값이 존재할때까지 (즉 선택 안되고 남은놈들)
+     */
+    while (it.hasNext()) {
+      curPeak = it.next();    // 그다음 peak 을 curPeak 에 임시로 넣는다.
+      /**
+       * 현재 peak 에서의 intensity 값이, 가장 작은 Intensity 값을 가진
+       * Peak 보다 클경우
+       */
       if (curPeak.getIntensity() > globalSelected.first().getIntensity()) {
-        /** globalSelected의 첫번째 Peak 값을 notSelected에 더해준다. */
+        /**
+         * globalSelected의 첫번째 Peak 값을 notSelected에 더해준다.
+         */
         notSelected.add(globalSelected.first());
-        /** 가장 작은 peak 을 제거한다. */
+        /**
+         * 가장 작은 peak 을 제거한다.
+         */
+        /**
+         * Author: Yedarm Seong
+         * 제거하는 Peak들은 모두 Noise 이고, Intensity 값이 작다.
+         */
         globalSelected.remove(globalSelected.first());
-        /** 현재 가리키고있는 Peak 을 globalSelected Collection 에 더해준다. */
+        /**
+         * 현재 가리키고있는 Peak 을 globalSelected Collection 에 더해준다.
+         */
         globalSelected.add(curPeak);
-      } else {
-        /** 현재 가리키는 Peak 을 notSelected 에 더해준다. */
+      }
+      else {
+        /**
+         * 현재 가리키는 Peak 을 notSelected 에 더해준다.
+         */
         notSelected.add(curPeak);
       }
     }
+
     /** local selection 부분 */
     TreeSet<Peak> selected = new TreeSet<Peak>(new MassComparator());
-    /** (mass 값 비교)자료구조 Peak 을 정렬하여 selected 에 넣는다. */
-    /** global selection 된 모든 List 를 selected 에 추가 */
+    /**
+     * (mass 값 비교) 자료구조 Peak 을 정렬하여 selected 에 넣는다.
+     * global selection 된 모든 List 를 selected 에 추가
+     */
     selected.addAll(globalSelected);
-    /** 현재 Window 의 크기를 나타내기위하여, 변수 설정 */
+    /**
+     * 현재 Window 의 크기를 나타내기위하여, 변수 설정
+     */
     int currentBinPeakSize;
-    /** 위치 변수로 사용하기위하여, 변수 설정 */
+    /**
+     * 위치 변수로 사용하기위하여, 변수 설정
+     */
     double currentBinStart, currentBinEnd;
-    /** 추가적인 peak 은 selection 하지 않는다. in (0, selectionWindowSize) */
+    /** 
+     * 추가적인 peak 은 selection 하지 않는다. in (0, selectionWindowSize)
+     */
     for (int i = 2; i < (int) (correctedMW / selectionWindowSize + 1) * 2;
-         i++) {    // 하나의 Window를 Bin 이라고 한다.
-      /** local selection 할 시작 부분 */
+         i++) {    // 하나의 Window 를 Bin 이라고 한다.
+      /** 
+       * local selection 할 시작 부분
+       */
       currentBinStart = i * selectionWindowSize / 2;
-      /** local selection 할 끝 부분 */
+      /**
+       * local selection 할 끝 부분
+       */
       currentBinEnd = currentBinStart + selectionWindowSize;
+      /**
+       * Peak 에서 local selection 할 부분의 시작 부분에서
+       * 끝 부분까지 부분의 Peak 의 개수를
+       * subSet 메소드를 이용해서 가져온다.
+       */
       currentBinPeakSize =
           selected.subSet(new Peak(0, currentBinStart, 0),
-              new Peak(0, currentBinEnd, 0)).size();
-      /** Peak 에서 local selection 할 부분의 시작 부분에서
-       * 끝 부분까지 부분의 Peak 의 개수를
-       * subSet 메소드를 이용해서 가져온다. */
-      /** 현재 Window 안에 있는 peak 의 갯수 < 윈도우에 들어가는 peak 의 개수 */
-      /** 예) 현재 3 개 뽑아야 하는데, 1 개 밖에없을 경우 */
+                          new Peak(0, currentBinEnd, 0)).size();
+      /**
+       * 현재 Window 안에 있는 peak 의 개수 < 윈도우에 들어가는 peak 의 개수 
+       * 예) 현재 3 개 뽑아야 하는데, 1 개 밖에 없을 경우
+       */
       if (currentBinPeakSize < numOfPeaksInWindow) {
-        /** notSelected에서 해당 범위의 Peak 을 새로운 newPeaks에 넣는다. */
+        /**
+         * notSelected 에서 해당 범위의 Peak 을 새로운 newPeaks 에 넣는다.
+         */
         Peak[] newPeaks =
-            notSelected.subSet(new Peak(0, currentBinStart, 0.),
-                new Peak(0, currentBinEnd, 0.))
-                .toArray(new Peak[0]);
-        /** Intensity 순으로, 역순으로 정렬 */
+            notSelected.subSet(
+                new Peak(0, currentBinStart, 0.),
+                new Peak(0, currentBinEnd, 0.)).toArray(new Peak[0]);
+        /**
+         * Intensity 순으로, 역순으로 정렬
+         */
         Arrays.sort(newPeaks,
-            Collections.reverseOrder(new IntensityComparator()));
+                    Collections.reverseOrder(new IntensityComparator()));
         for (int j = 0;
              j < newPeaks.length
-                 && j < numOfPeaksInWindow - currentBinPeakSize; j++) {   //Bin
+          && j < numOfPeaksInWindow - currentBinPeakSize; j++) {    //Bin
           if (newPeaks[j].getNormIntensity() > Constants.minNormIntensity) {
-            /** notSelected에서 newPeaks의 j 에 해당하는 peak 을 제거 */
+            /**
+             * notSelected 에서 newPeaks 의 j 에 해당하는 peak 을 제거
+             */
             notSelected.remove(newPeaks[j]);
-            /** newPeaks의 j 에 해당하는 값을 selected 에 추가 */
+            /**
+             * newPeaks 의 j 에 해당하는 값을 selected 에 추가
+             */
             selected.add(newPeaks[j]);
           } else
             break;
         }
       }
     }
-    /** Property : b이온 / y이온 이냐 */
+    /**
+     * Property : b이온 / y이온 이냐
+     */
     selected.add(new Peak(-1, Constants.B_ION_OFFSET + Constants.NTERM_FIX_MOD,
-        0, 1, PeakProperty.N_TERM_B_ION_ONLY));
+                          0, 1, PeakProperty.N_TERM_B_ION_ONLY));
     selected.add(new Peak(-1, Constants.Y_ION_OFFSET + Constants.CTERM_FIX_MOD,
-        0, 1, PeakProperty.C_TERM_Y_ION_ONLY));
-    selected.add(new Peak(-1, correctedMW - Constants.H2O + Constants.Proton
-        - Constants.CTERM_FIX_MOD, 0, 1,
-        PeakProperty.C_TERM_B_ION_ONLY));
+                          0, 1, PeakProperty.C_TERM_Y_ION_ONLY));
+    selected.add(new Peak(-1, correctedMW - Constants.H2O
+                            + Constants.Proton - Constants.CTERM_FIX_MOD,
+                          0, 1, PeakProperty.C_TERM_B_ION_ONLY));
     selected.add(new Peak(-1, correctedMW + Constants.Proton
-        - Constants.NTERM_FIX_MOD, 0, 1,
-        PeakProperty.N_TERM_Y_ION_ONLY));
+                            - Constants.NTERM_FIX_MOD,
+                          0, 1, PeakProperty.N_TERM_Y_ION_ONLY));
 
     selectedPeak = new ArrayList<Peak>(selected);
     setScoreOfSelectedPeaks(selectedPeak, 1, Constants.massToleranceForDenovo);
 
-    return selectedPeak.size();
+    // return selectedPeak.size();
+    return selectedPeak;
   }
-
 
   //      Select Peaks only bigger than the average intensity of the given spectrum
   //      input  : spectrum (already normalized)
@@ -400,14 +459,16 @@ public class Spectrum extends ArrayList<Peak> implements Comparable<Spectrum> {
     return selectedPeak.size();
   }
 
-  //    /*
-  //     * Select Peaks only bigger than the average intensity of the peaks which have lower than 5 times of the average intensity of the given spectrum
-  //     * 전체 peak의 intensity 평균의 5배보다 작은 peak들의 평균보다 큰 peak들만 선택.
-  //     * input  : spectrum
-  //     * output : selectedPeak size, selected peak( assign to the class value of the given spectrum )
-  //     * 2015.09.29
-  //     * Jonghun Park
-  //     */
+ /**
+  * Select Peaks only bigger than the average intensity of the peaks which have lower than 5 times of the average intensity of the given spectrum
+  * 전체 peak의 intensity 평균의 5배보다
+  * 작은 peak들의 평균보다 큰 peak들만 선택.
+  * input  : spectrum
+  * output : selectedPeak size,
+  *          selected peak( assign to the class value of the given spectrum )
+  * 2015.09.29
+  * Jonghun Park
+  */
   public int selectPeakBiggerThan5Avg(Spectrum spectrum) {
     // TODO Auto-generated method stub
     int i = 0;
@@ -465,15 +526,14 @@ public class Spectrum extends ArrayList<Peak> implements Comparable<Spectrum> {
       //System.out.println(spec.get(i).getIntensity());
     }
     ArrayList<Peak> End = new ArrayList<Peak>(selected);
-        /*
-        for(int i = 0; i < selected.size(); i ++)
-        {
-            System.out.println(End.get(i).getMass());
-            System.out.println(End.get(i).getIntensity());
-
-        }
-        System.out.println(selected.size() + spec.size() + End.size());
-        */
+    /*
+    for(int i = 0; i < selected.size(); i ++)
+    {
+        System.out.println(End.get(i).getMass());
+        System.out.println(End.get(i).getIntensity());
+    }
+    System.out.println(selected.size() + spec.size() + End.size());
+    */
     return End;
   }
 
@@ -489,15 +549,15 @@ public class Spectrum extends ArrayList<Peak> implements Comparable<Spectrum> {
       //System.out.println(spec.get(i).getIntensity());
     }
     ArrayList<Peak> End = new ArrayList<Peak>(selected);
-        /*
-        for(int i = 0; i < selected.size(); i ++)
-        {
-            System.out.println(End.get(i).getMass());
-            System.out.println(End.get(i).getIntensity());
+    /*
+    for(int i = 0; i < selected.size(); i ++)
+    {
+        System.out.println(End.get(i).getMass());
+        System.out.println(End.get(i).getIntensity());
 
-        }
-        System.out.println(selected.size() + spec.size() + End.size());
-        */
+    }
+    System.out.println(selected.size() + spec.size() + End.size());
+    */
     return End;
   }
 
@@ -544,6 +604,7 @@ public class Spectrum extends ArrayList<Peak> implements Comparable<Spectrum> {
 
       }
       */
+
 /*---------------------------------------------------------------------------------------------------------------
   ---------------------------------------------------------------------------------------------------------------
   ---------------------------------------------------------------------------------------------------------------*/
@@ -637,7 +698,6 @@ public class Spectrum extends ArrayList<Peak> implements Comparable<Spectrum> {
     return true;
   }
 
-
   public boolean checkSorted()    // identical to Tag's method
   {
     Peak tmp = null;
@@ -659,7 +719,6 @@ public class Spectrum extends ArrayList<Peak> implements Comparable<Spectrum> {
     else
       return -1;
   }
-
 
   private void setScoreOfSelectedPeaks(ArrayList<Peak> selected, int assumedCS, double tolerance) {
     double isotopeDelta = 1.0034, NH3Delta = Constants.NH3,

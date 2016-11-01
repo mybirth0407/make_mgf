@@ -96,6 +96,11 @@ public class Peak implements Comparable<Peak> {
     return new String(Constants.getString(mass) + " " + this.property);
   }
 
+  public String toString2() {
+    return Constants.getString(mass) + " "
+         + Constants.getString(normIntensity) + '\n';
+  }
+
   public Peak clone() {
     Peak p = new Peak(index, mass, intensity, charge, property);
     p.setNormIntensity(normIntensity);

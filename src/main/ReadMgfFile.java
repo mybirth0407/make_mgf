@@ -1,15 +1,20 @@
 package main;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import modi.Constants;
+import modi.Peak;
 import modi.Spectrum;
 import scaniter.MSMScan;
 import scaniter.ScanIterator;
 
-/** Author: Yedarm Seong
- * IntelliJ에서는 Wildcard Import시 경로명이 중요함 */
+/**
+ * Author: Yedarm Seong
+ * IntelliJ에서는 Wildcard Import시 경로명이 중요함
+ */
 // import org.systemsbiology.jrap.*;
 import org.systemsbiology.jrap.stax.*;
 
@@ -29,9 +34,11 @@ public class ReadMgfFile {
   static public double originFT = 0.05;
 
   public static void main(String[] args) throws IOException {
-    /** Q. 펩타이드 조각의 허용 오차?
+    /**
+     * Q. 펩타이드 조각의 허용 오차?
      * A. MS/MS 의 허용 오차, 장비의 한계 때문에 생김
-     * 오차 이내의 범위에서는 구별할 수 없음*/
+     * 오차 이내의 범위에서는 구별할 수 없음
+     */
     Constants.fragmentTolerance = tolerance;
     /** minNumOfPeaksInWindow = 3 일 때 */
     Constants.adjustParametersForInstrument(0);
@@ -44,6 +51,7 @@ public class ReadMgfFile {
   }
 
   private static ArrayList<MSMScan> ReadMGF(String filename) throws IOException {
+    FileOutputStream fileOutputStream = new FileOutputStream("./output.mgf");
     int readCounter = 0;
 
     System.out.println("Reading prepxrocessed files," + filename);
@@ -73,7 +81,9 @@ public class ReadMgfFile {
           /** Peak Normalization */
           spec = scan.getSpectrum();
           spec.normalizeIntensityLocally();
-
+          // System.out.println(spec.getCharge());
+          // System.out.println(spec.getPrecursor());
+          // System.out.println(scan.getScanNumber());
           /** Peak picking */
           /**
            * Author: Yedarm Seong
@@ -86,13 +96,32 @@ public class ReadMgfFile {
            * Author: Yedarm Seong
            * Q. extra 를 더하는 이유
            * A. 장비 차이에 의해 달라질 수 있는 값들을 보정하기 위해 */
-          spec.peakSelection(Constants.selectionWindowSize,
-              Constants.minNumOfPeaksInWindow + extra);
+          ArrayList<Peak> selectedPeak =
+              spec.peakSelection(Constants.selectionWindowSize,
+                                 Constants.minNumOfPeaksInWindow + extra);
+          speclist.add(scan);
 
           // now we have pre-processed spectrum, spec
           // TODO: write a new preprocessed spectrum file.
+          /**
+           * Author: Yedarm Seong
+           * mgf File
+           */
+          fileOutputStream.write("BEGIN IONS\n".getBytes());
+          fileOutputStream.write(
+              ("PEPMASS=" + spec.getPrecursor() + '\n').getBytes());
+          fileOutputStream.write(
+              ("CHARGE=" + spec.getCharge() + "+\n").getBytes());
+          fileOutputStream.write("RTINSECONDS=\n".getBytes());
+          fileOutputStream.write(
+              ("SCANS=" + scan.getScanNumber() +'\n').getBytes());
 
-          speclist.add(scan);
+          for (int i = 2; i < selectedPeak.size(); i++) {
+            fileOutputStream.write(
+                (selectedPeak.get(i).toString2()).getBytes());
+          }
+
+          fileOutputStream.write("END IONS\n".getBytes());
         }
       }
     } catch (IOException e1) {
