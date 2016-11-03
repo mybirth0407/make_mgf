@@ -105,7 +105,7 @@ public class ReadMgfFile {
           // TODO: write a new preprocessed spectrum file.
           /**
            * Author: Yedarm Seong
-           * mgf File
+           * Output mgf File write
            */
           fileOutputStream.write("BEGIN IONS\n".getBytes());
           fileOutputStream.write(
